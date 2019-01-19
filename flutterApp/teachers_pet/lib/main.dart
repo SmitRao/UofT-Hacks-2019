@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_blue/flutter_blue.dart';
-import 'Stream'
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -45,55 +45,59 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {  
+class _MyHomePageState extends State<MyHomePage> {
   static const int deviceRSSI = 123131;
-
+  int _appState = 0;
   int _counter = 0;
   FlutterBlue btInst;
+  List<BluetoothDevice> availableDevices;
   BluetoothDevice device;
   List<BluetoothService> services;
   bool _isConnected = false;
   void vibrate() async {
-     print("DOES HAVE VIBRATOR? :" + await Vibration.hasVibrator());
-      if(await Vibration.hasVibrator()){
-        Vibration.vibrate(duration:1000);
-      }
+    print("DOES HAVE VIBRATOR? :" + await Vibration.hasVibrator());
+    if (await Vibration.hasVibrator()) {
+      Vibration.vibrate(duration: 1000);
+    }
   }
+
   @override
-    void initState() {
-      super.initState();
-      btInst = FlutterBlue.instance;
-      btLoop();
+  void initState() {
+    super.initState();
+    btInst = FlutterBlue.instance;
+    btLoop();
   }
-  Future<void> findDevice() async{
+
+  Future<void> findDevice() async {
     var scanSubscription = btInst.scan().listen((scanResult) {
-      if( scanResult.rssi == ){
+      if (scanResult.advertisementData.connectable) {
+        availableDevices.add(scanResult.device);
       }
     });
   }
 
-  void btLoop() async{
-     await findDevice();
-  }
-  
-  void updateServices(){
-    services.forEach((BluetoothService service){
-
-    });
-  }
-  
-  void startConnect(){
-
-  }
-
-  void _onConnect(bool isConnected){
-    setState( () => _isConnected = isConnected);
-  }
-
-  void _whileConnected(){
-      if( _isConnected){
-        updateServices();
+  void btLoop() async {
+    while (true) {
+      switch (_appState) {
+        case 0:
+       //   await findDevice(); //
+          break;
+        case 1: //Performing connection
+          break;
+        case 2: // While connection
+          break;
       }
+    }
+  }
+
+  void updateServices() {
+    services.forEach((BluetoothService service) {});
+  }
+
+  void _whileConnected() {
+    if (_isConnected) {
+      updateServices();
+    }
   }
 
   void _attemptConnection() {
@@ -101,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _counter++;
       Vibration.vibrate(duration: 1000);
     });
-  } 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,22 +125,26 @@ class _MyHomePageState extends State<MyHomePage> {
               style: Theme.of(context).textTheme.display1,
             ),
             Text(
-              _isConnected ? 'Device connected' : 'Device disconnected' ,
+              _isConnected ? 'Device connected' : 'Device disconnected',
               style: Theme.of(context).textTheme.body1,
             ),
-            Expanded(
-              child: RaisedButton(child: Text("Connect To IP"),
-              onPressed: ,
-            ),
-            ),
+            buildDeviceList(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: vibrate,//_incrementCounter,
+        onPressed: vibrate, //_incrementCounter,
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  Widget buildDeviceList() {
+    List<Widget> deviceCards = List();
+    availableDevices.forEach((device) => (deviceCards.add(
+          Text(device.name),
+        )));
+    return ListView(children: deviceCards,);
   }
 }
