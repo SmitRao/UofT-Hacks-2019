@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_blue/flutter_blue.dart';
-
+import 'Stream'
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -45,32 +45,58 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> {  
+  static const int deviceRSSI = 123131;
+
   int _counter = 0;
   FlutterBlue btInst;
   BluetoothDevice device;
-  bool isConnected = false;
-  void setVibrate() async {
-     print(await Vibration.hasVibrator());
-      // if(Vibration.hasVibrator()){
-      //   Vibration.vibrate(duration:1000);
-      // }
+  List<BluetoothService> services;
+  bool _isConnected = false;
+  void vibrate() async {
+     print("DOES HAVE VIBRATOR? :" + await Vibration.hasVibrator());
+      if(await Vibration.hasVibrator()){
+        Vibration.vibrate(duration:1000);
+      }
   }
   @override
     void initState() {
       super.initState();
       btInst = FlutterBlue.instance;
       btLoop();
-    }
-  void btLoop() async{
-      await findDevice();
   }
   Future<void> findDevice() async{
     var scanSubscription = btInst.scan().listen((scanResult) {
-      
+      if( scanResult.rssi == ){
+      }
     });
   }
-  void _incrementCounter() {
+
+  void btLoop() async{
+     await findDevice();
+  }
+  
+  void updateServices(){
+    services.forEach((BluetoothService service){
+
+    });
+  }
+  
+  void startConnect(){
+
+  }
+
+  void _onConnect(bool isConnected){
+    setState( () => _isConnected = isConnected);
+  }
+
+  void _whileConnected(){
+      if( _isConnected){
+        updateServices();
+      }
+  }
+
+  void _attemptConnection() {
     setState(() {
       _counter++;
       Vibration.vibrate(duration: 1000);
@@ -95,14 +121,19 @@ class _MyHomePageState extends State<MyHomePage> {
               style: Theme.of(context).textTheme.display1,
             ),
             Text(
-              isConnected ? 'Device connected' : 'Device disconnected' ,
+              _isConnected ? 'Device connected' : 'Device disconnected' ,
               style: Theme.of(context).textTheme.body1,
-            )
+            ),
+            Expanded(
+              child: RaisedButton(child: Text("Connect To IP"),
+              onPressed: ,
+            ),
+            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: vibrate,//_incrementCounter,
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
