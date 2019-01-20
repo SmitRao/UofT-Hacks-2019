@@ -40,8 +40,8 @@ enum AlertState { SILENT, VIBRATE, SOUND, BOTH }
 
 class _MyHomePageState extends State<MyHomePage> {
   AlertState alertState = AlertState.SILENT;
-  int hands_Detected = 0;
-  int hands_Raised = 1;
+  //int _hands_Detected = 0;
+  //int _hands_Raised = 1;
   PetApi api;
   bool _isConnected = false;
   bool _isAwaitingCall = false;
@@ -50,8 +50,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    hands_Detected = 0;
-    hands_Raised = 0;
+   // hands_Detected = 0;
+   // hands_Raised = 0;
     api = PetApi();
     time = Timer.periodic(Duration(seconds: 1), checkPet);
     print("Timer started");
@@ -63,15 +63,30 @@ class _MyHomePageState extends State<MyHomePage> {
       print("checking pet");
       _isAwaitingCall = true;
       i = await api.getIsHandRaised();
+      setState(() {
+        _isConnected = true;
+      });
       _isAwaitingCall = false;
     } else {
       print("Awaiting last call");
     }
     print("The Value obtained");
     print(i);
-    if (i == 1) {
+    if (i == 1) //1 Means a hand is raised
+    {
       playAlert();
     }
+    else if(i == 0){// Means no hand is raised 
+      //Do not raised
+    }
+    else if (i == null || i == -1)
+    {
+      setState(() {
+        _isConnected = false;
+      });
+    } 
+
+    
   }
 
   void playAlert() async{
@@ -79,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case AlertState.BOTH:
         vibrate();
         playSound();
+        //timer.cancel();
         break;
       case AlertState.SOUND:
         playSound();
@@ -132,11 +148,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Center(child: Text(widget.title)),
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             Text(
               _isConnected ? 'Device connected' : 'Device disconnected',
