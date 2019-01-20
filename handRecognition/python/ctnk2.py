@@ -38,7 +38,7 @@ def get_raise():
 
         ret, frame = cap.read()
 
-        predictionThreshold = 30
+        predictionThreshold = 50
         image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
         predictions = od_model.predict_image(image)
@@ -102,7 +102,7 @@ def get_raiseFull():
     endResult = "0"
     print(averageHighestPrediction, predictionThreshold)
     if float(averageHighestPrediction) > float(predictionThreshold):
-        endResult = "1," + str(predictionsMain)
+        endResult = "['1', '" + str(predictionsMain)
         print(endResult)
         return endResult
     else:
