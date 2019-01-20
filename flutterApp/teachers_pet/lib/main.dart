@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import 'PetApi.dart';
+import 'dart:async';
 
 void main() => runApp(MyApp());
 
@@ -30,46 +31,101 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
   final String title;
-
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+enum AlertState { SILENT, VIBRATE, SOUND, BOTH }
+
 class _MyHomePageState extends State<MyHomePage> {
-  int hands_Detected;
-  int hands_Raised;
+  AlertState alertState = AlertState.SILENT;
+  int hands_Detected = 0;
+  int hands_Raised = 1;
   PetApi api;
   bool _isConnected = false;
-  bool isVibrateEnabled = false;
+  bool _isAwaitingCall = false;
+  Timer time;
+
   @override
   void initState() {
     super.initState();
-    int hands_Detected = 0;
-    int hands_Raised = 0;
+    hands_Detected = 0;
+    hands_Raised = 0;
     api = PetApi();
-    disableVibrate();
+    time = Timer.periodic(Duration(seconds: 1), checkPet);
+    print("Timer started");
+  }
+
+  void checkPet(Timer time) async {
+    int i = -1;
+    if (!_isAwaitingCall) {
+      print("checking pet");
+      _isAwaitingCall = true;
+      i = await api.getIsHandRaised();
+      _isAwaitingCall = false;
+    } else {
+      print("Awaiting last call");
+    }
+    print("The Value obtained");
+    print(i);
+    if (i == 1) {
+      playAlert();
+    }
+  }
+
+  void playAlert() async{
+    switch (alertState) {
+      case AlertState.BOTH:
+        vibrate();
+        playSound();
+        break;
+      case AlertState.SOUND:
+        playSound();
+        break;
+
+      case AlertState.VIBRATE:
+        vibrate();
+        break;
+
+      case AlertState.SILENT:
+        break;
+    }
+  }
+
+  void playSound(){
+
   }
 
   void vibrate() async {
-    if (await Vibration.hasVibrator() && isVibrateEnabled) {
+    if ((alertState == AlertState.VIBRATE ||
+        (alertState == AlertState.BOTH) && await Vibration.hasVibrator())) {
       Vibration.vibrate(duration: 1000);
     }
   }
 
-  void disableVibrate() {
-
+  void _setAlertBoth() {
+    setState(() {
+      alertState = AlertState.BOTH;
+    });
   }
 
-  void enableVibrate() {
-    
+  void _setAlertSound() {
+    setState(() {
+      alertState = AlertState.SOUND;
+    });
+  }
+
+  void _setAlertVibrate() {
+    setState(() {
+      alertState = AlertState.VIBRATE;
+    });
+  }
+
+  void _disableAlert() {
+    setState(() {
+      alertState = AlertState.SILENT;
+    });
   }
 
   @override
@@ -84,30 +140,39 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Text(
               _isConnected ? 'Device connected' : 'Device disconnected',
-              style: Theme.of(context).textTheme.body1,
+              style: Theme.of(context).textTheme.display1,
             ),
             Tooltip(
-              message: "Enable Vibrations",
+              message: "Vibrate and Sound",
               child: RaisedButton(
-                child: Text("Enable Vibration"),
-                onPressed: enableVibrate,
+                child: Text("Vibrate and Sound"),
+                onPressed: _setAlertBoth,
               ),
             ),
             Tooltip(
-              message: "Disable Vibrations",
+              message: "Sound Only",
               child: RaisedButton(
-                child: Text("Disable Vibration"),
-                onPressed: disableVibrate,
+                child: Text("Sound Only"),
+                onPressed: _setAlertSound,
+              ),
+            ),
+            Tooltip(
+              message: "Vibration Only",
+              child: RaisedButton(
+                child: Text("Vibration Only"),
+                onPressed: _setAlertVibrate,
+              ),
+            ),
+            Tooltip(
+              message: "Disable Alerts",
+              child: RaisedButton(
+                child: Text("Disable Alerts"),
+                onPressed: _disableAlert,
               ),
             ),
           ],
         ),
       ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: vibrate, //_incrementCounter,
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
