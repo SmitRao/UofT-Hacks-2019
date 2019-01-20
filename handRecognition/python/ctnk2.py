@@ -1,3 +1,6 @@
+import copy
+import sys
+
 import cntk
 import time
 
@@ -21,8 +24,13 @@ LABELS_FILENAME = '../labels.txt'
 global cap
 global model
 global od_model
+global hand_x, hand_y
+global frame
+global predictions
+
 @app.route('/')
 def get_raise():
+    global frame
     condition = False
     listOfHighest = []
     frameCounter = 0
@@ -58,6 +66,48 @@ def get_raise():
         return endResult
     else:
         endResult = "0"
+        print(endResult)
+        return endResult
+
+@app.route('/deep')
+def get_raiseFull():
+    global frame
+    condition = False
+    listOfHighest = []
+    frameCounter = 0
+    while frameCounter < 3:
+
+        ret, frame = cap.read()
+
+        predictionThreshold = 30
+        image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+        predictionsMain = od_model.predict_image(image)
+        highest = 0
+        if (len(predictionsMain) > 0):
+            for a in range(len(predictionsMain)):
+                if predictionsMain[a].get('probability') > highest:
+                    highest = predictionsMain[a].get('probability') * 100
+        if (len(listOfHighest) >= 5):
+            del (listOfHighest[0])
+            listOfHighest.append(highest)
+        else:
+            listOfHighest.append(highest)
+        frameCounter+=1
+    averageHighestPrediction = (sum(listOfHighest)) / len(listOfHighest)
+
+    print("Current average: ", averageHighestPrediction)
+
+    print(predictionsMain)
+    endResult = "0"
+    print(averageHighestPrediction, predictionThreshold)
+    if float(averageHighestPrediction) > float(predictionThreshold):
+        endResult = "1," + str(predictionsMain)
+        print(endResult)
+        return endResult
+    else:
+        endResult = "0," + str(predictionsMain)
+
         print(endResult)
         return endResult
 
@@ -238,8 +288,9 @@ class CNTKObjectDetection(ObjectDetection):
 
 
 def main():
-    global cap, model, od_model
+    global cap, model, od_model, frame
     cap = cv2.VideoCapture(1)
+    ret, frame = cap.read()
     model = cntk.Function.load(MODEL_FILENAME, format=cntk.ModelFormat.ONNX)
 
     # Load labels
@@ -250,22 +301,52 @@ def main():
 
 
 def showImage():
-    while True:
-        ret, frame = cap.read()
-        cv2.imshow("Frame",frame)
-        cv2.waitKey(150)
+    global od_model, cap, frame, predictions
 
+    while True:
+        #newframe = copy.copy(frame)
+
+        #image = Image.fromarray(cv2.cvtColor(newframe, cv2.COLOR_BGR2RGB))
+        #predictionsImage = predictions
+
+        #highestProbabilityImage = 0
+        #if len(predictionsImage) != 0:
+         #    for i in range(len(predictionsImage)):
+         #        if predictionsImage[i]['probability'] > predictionsImage[highestProbabilityImage]['probability']:
+        #            highestProbabilityImage = i
+
+         #    print("Height:", height, " | Width: ", width)
+         #    print("Prediction left: ", predictionsImage[highestProbabilityImage]['left'] * width)
+      #  print(type(predictionsImage))
+        ret, myframe = cap.read()
+        #height, width, channels = frame.shape
+        #superframe =     cv2.circle(frame,(predictionsImage[highestProbabilityImage]['width']* width,predictionsImage[highestProbabilityImage]['top']*height),40,(255,0,0),3)
+
+        #font = cv2.FONT_HERSHEY_SIMPLEX
+      #  if len(predictionsImage) != 0:
+            #myframe =  cv2.putText(superframe, ('Probability: ',predictionsImage[highestProbabilityImage]['probability']*100), (10, 500), font, 20, (255, 255, 255), 2, cv2.LINE_AA)
+
+        #else:
+
+        cv2.imshow("Frame",myframe)
+        givenKey = cv2.waitKey(50)  # every one millisecond
+        if givenKey == ord('x'):
+            cap.release()
+            cv2.destroyAllWindows()
+            sys.exit()
 def runApp():
     print("call")
     app.run(host='0.0.0.0',port=5000)
 
 if __name__ == '__main__':
+    predictions = []
     main()
     #runApp()
-    imageThread = Thread(target=showImage)
-    imageThread.start()
     appThread = Thread(target=runApp)
     appThread.start()
+    imageThread = Thread(target=showImage)
+    imageThread.start()
+
 
 
     # if len(sys.argv) <= 1:
