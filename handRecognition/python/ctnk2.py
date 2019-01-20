@@ -26,7 +26,7 @@ def get_raise():
     condition = False
     listOfHighest = []
     frameCounter = 0
-    while frameCounter < 1:
+    while frameCounter < 3:
 
         ret, frame = cap.read()
 
@@ -249,7 +249,11 @@ def main():
     od_model = CNTKObjectDetection(model, labels)
 
 
-
+def showImage():
+    while True:
+        ret, frame = cap.read()
+        cv2.imshow("Frame",frame)
+        cv2.waitKey(150)
 
 def runApp():
     print("call")
@@ -257,8 +261,11 @@ def runApp():
 
 if __name__ == '__main__':
     main()
-    runApp()
-
+    #runApp()
+    imageThread = Thread(target=showImage)
+    imageThread.start()
+    appThread = Thread(target=runApp)
+    appThread.start()
 
 
     # if len(sys.argv) <= 1:
