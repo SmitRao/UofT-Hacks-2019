@@ -1,26 +1,18 @@
-import copy
 import sys
-
-import cntk
-import time
-
 import cntk
 import cv2
 import numpy as np
 from PIL import Image
 from flask import Flask
-from multiprocessing import Process
-import queue
-from queue import Queue
 from threading import Thread
 
 app = Flask(__name__)
 
-
+# define the model and label files
 MODEL_FILENAME = '../model.onnx'
 LABELS_FILENAME = '../labels.txt'
 
-
+# define global variables
 global cap
 global model
 global od_model
@@ -28,17 +20,19 @@ global hand_x, hand_y
 global frame
 global predictions
 
+# define flask app call
 @app.route('/')
 def get_raise():
+    # define global frame
     global frame
     condition = False
     listOfHighest = []
     frameCounter = 0
-    while frameCounter < 3:
+    while frameCounter < 5:
 
         ret, frame = cap.read()
 
-        predictionThreshold = 50
+        predictionThreshold = 45
         image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
         predictions = od_model.predict_image(image)
@@ -75,6 +69,7 @@ def get_raiseFull():
     condition = False
     listOfHighest = []
     frameCounter = 0
+
     while frameCounter < 3:
 
         ret, frame = cap.read()
@@ -94,20 +89,25 @@ def get_raiseFull():
         else:
             listOfHighest.append(highest)
         frameCounter+=1
+
+    # calculate the highest prediction (average across frames)
     averageHighestPrediction = (sum(listOfHighest)) / len(listOfHighest)
 
+    # print out calculated data
     print("Current average: ", averageHighestPrediction)
-
     print(predictionsMain)
-    endResult = "0"
     print(averageHighestPrediction, predictionThreshold)
+
+    # if the average high prediction is higher/lower than our defined threshold,
+    # return an indication to the mobile phone
     if float(averageHighestPrediction) > float(predictionThreshold):
+        # REST backend input
         endResult = "['1', '" + str(predictionsMain)
         print(endResult)
         return endResult
     else:
+        # REST backend input
         endResult = "0," + str(predictionsMain)
-
         print(endResult)
         return endResult
 
@@ -136,6 +136,7 @@ class ObjectDetection(object):
     def _logistic(self, x):
         return np.where(x > 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
 
+    # image compression function
     def _non_maximum_suppression(self, boxes, class_probs, max_detections):
         """Remove overlapping bouding boxes
         """
@@ -272,6 +273,8 @@ class ObjectDetection(object):
                      'height': round(float(selected_boxes[i][3]), 8)
                  }
                  } for i in range(len(selected_boxes))]
+
+# Detect objects using CNTK
 class CNTKObjectDetection(ObjectDetection):
     """Object Detection class for CNTK
     """
@@ -288,9 +291,13 @@ class CNTKObjectDetection(ObjectDetection):
 
 
 def main():
+    # globalize variables
     global cap, model, od_model, frame
-    cap = cv2.VideoCapture(1)
+    # open the main video capture
+    cap = cv2.VideoCapture(0)
+    # read in the first frame of video
     ret, frame = cap.read()
+    # define the neural network's trained model, load it in
     model = cntk.Function.load(MODEL_FILENAME, format=cntk.ModelFormat.ONNX)
 
     # Load labels
@@ -299,49 +306,37 @@ def main():
 
     od_model = CNTKObjectDetection(model, labels)
 
-
+# show the image to the user
 def showImage():
+    # define the globals
     global od_model, cap, frame, predictions
 
+    # loop until program ends
     while True:
-        #newframe = copy.copy(frame)
 
-        #image = Image.fromarray(cv2.cvtColor(newframe, cv2.COLOR_BGR2RGB))
-        #predictionsImage = predictions
-
-        #highestProbabilityImage = 0
-        #if len(predictionsImage) != 0:
-         #    for i in range(len(predictionsImage)):
-         #        if predictionsImage[i]['probability'] > predictionsImage[highestProbabilityImage]['probability']:
-        #            highestProbabilityImage = i
-
-         #    print("Height:", height, " | Width: ", width)
-         #    print("Prediction left: ", predictionsImage[highestProbabilityImage]['left'] * width)
-      #  print(type(predictionsImage))
+        # read in the image, frame by frame
         ret, myframe = cap.read()
-        #height, width, channels = frame.shape
-        #superframe =     cv2.circle(frame,(predictionsImage[highestProbabilityImage]['width']* width,predictionsImage[highestProbabilityImage]['top']*height),40,(255,0,0),3)
-
-        #font = cv2.FONT_HERSHEY_SIMPLEX
-      #  if len(predictionsImage) != 0:
-            #myframe =  cv2.putText(superframe, ('Probability: ',predictionsImage[highestProbabilityImage]['probability']*100), (10, 500), font, 20, (255, 255, 255), 2, cv2.LINE_AA)
-
-        #else:
-
+        # display the image
         cv2.imshow("Frame",myframe)
+        # given an "x" input, end the program.
         givenKey = cv2.waitKey(50)  # every one millisecond
+        # program end clause
         if givenKey == ord('x'):
             cap.release()
             cv2.destroyAllWindows()
             sys.exit()
+# run the Flask server
 def runApp():
-    print("call")
+    print("Server initiated!")
     app.run(host='0.0.0.0',port=5000)
 
+# This is called immediately as the program starts
 if __name__ == '__main__':
+    # initialize predictions
     predictions = []
+    # run main() for further initialization
     main()
-    #runApp()
+    # define and run the different threads for efficiency
     appThread = Thread(target=runApp)
     appThread.start()
     imageThread = Thread(target=showImage)
@@ -349,7 +344,4 @@ if __name__ == '__main__':
 
 
 
-    # if len(sys.argv) <= 1:
-    #    print('USAGE: {} image_filename'.format(sys.argv[0]))
-    # else:
-    #    main(sys.argv[1])
+
