@@ -22,7 +22,25 @@ class PetApi {
       return null;
     }
   }
+  Future<int> getIsHandRaisedLocation(){
+    print("Ran is hand Raised");
+    return getRawInt(url);
+  }
+    /// Fetches and decodes a JSON object represented as a Dart [Map].
+  /// Returns null if the API server is down, or the response is not JSON.
+  Future<int> getRaised(String url) async {
+    try {
+      print("Ran GetIntRaw");
 
+      final String responseBody = (await http.get(url + "deep")).body;
+      print("Request to host returned: $responseBody");
+      return int.parse(responseBody);
+    } on Exception catch (e) {
+      print("did not return int");
+      print('$e');
+      return null;
+    }
+  }
     /// Fetches and decodes a JSON object represented as a Dart [Map].
   /// Returns null if the API server is down, or the response is not JSON.
   Future<List<dynamic>> getJson(String url) async {
