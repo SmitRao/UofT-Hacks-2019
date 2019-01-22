@@ -102,12 +102,12 @@ def get_raiseFull():
     # return an indication to the mobile phone
     if float(averageHighestPrediction) > float(predictionThreshold):
         # REST backend input
-        endResult = "['1', '" + str(predictionsMain)
+        endResult =  str(predictionsMain)
         print(endResult)
         return endResult
     else:
         # REST backend input
-        endResult = "0," + str(predictionsMain)
+        endResult ='0'
         print(endResult)
         return endResult
 
